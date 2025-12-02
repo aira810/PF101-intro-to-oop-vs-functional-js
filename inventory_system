@@ -1,1 +1,119 @@
+// LocalStorage key
+const KEY = "mini_inventory_data";
+let products = [];
 
+// Load saved data
+function load() {
+    const saved = localStorage.getItem(KEY);
+    products = saved ? JSON.parse(saved) : [];
+}
+
+function save() {
+    localStorage.setItem(KEY, JSON.stringify(products));
+}
+
+function currency(n) {
+    return Number(n).toFixed(2);
+}
+
+function render(filter = "") {
+    const tbody = document.getElementById("inventoryBody");
+    tbody.innerHTML = "";
+
+    const query = filter.toLowerCase();
+    const list = products.filter(p =>
+        p.name.toLowerCase().includes(query) ||
+        p.category.toLowerCase().includes(query)
+    );
+
+    list.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${p.name}</td>
+            <td>${p.category}</td>
+            <td>₱ ${currency(p.price)}</td>
+            <td>${p.quantity}</td>
+            <td>₱ ${currency(p.price * p.quantity)}</td>
+            <td>
+                <button class="ghost" onclick="editProduct('${p.id}')">Edit</button>
+                <button class="btn-danger" onclick="deleteProduct('${p.id}')">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById("totalCount").textContent = products.length;
+}
+
+function addProduct(data) {
+    products.push(data);
+    save();
+    render();
+}
+
+function updateProduct(id, newData) {
+    products = products.map(p => p.id === id ? {...p, ...newData} : p);
+    save();
+    render();
+}
+
+function deleteProduct(id) {
+    if (confirm("Delete this product?")) {
+        products = products.filter(p => p.id !== id);
+        save();
+        render();
+    }
+}
+
+function editProduct(id) {
+    const p = products.find(x => x.id === id);
+    document.getElementById("editingId").value = p.id;
+    document.getElementById("name").value = p.name;
+    document.getElementById("category").value = p.category;
+    document.getElementById("price").value = p.price;
+    document.getElementById("quantity").value = p.quantity;
+    document.getElementById("saveBtn").textContent = "Save Changes";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Handle form submit
+document.getElementById("productForm").addEventListener("submit", e => {
+    e.preventDefault();
+
+    const id = document.getElementById("editingId").value;
+    const name = document.getElementById("name").value;
+    const category = document.getElementById("category").value || "";
+    const price = parseFloat(document.getElementById("price").value);
+    const quantity = parseInt(document.getElementById("quantity").value);
+
+    if (id) {
+        updateProduct(id, { name, category, price, quantity });
+    } else {
+        addProduct({ id: Date.now().toString(), name, category, price, quantity });
+    }
+
+    e.target.reset();
+    document.getElementById("editingId").value = "";
+    document.getElementById("saveBtn").textContent = "Add Product";
+});
+
+// Search
+document.getElementById("search").addEventListener("input", e => {
+    render(e.target.value);
+});
+
+document.getElementById("clearSearch").addEventListener("click", () => {
+    document.getElementById("search").value = "";
+    render();
+});
+
+// Clear
+document.getElementById("resetBtn").addEventListener("click", () => {
+    document.getElementById("productForm").reset();
+    document.getElementById("editingId").value = "";
+    document.getElementById("saveBtn").textContent = "Add Product";
+});
+
+// Initialize
+load();
+render();
